@@ -1,0 +1,25 @@
+{
+  "name": "@midnight/reasoning",
+  "version": "0.1.0",
+  "description": "Cross-run reasoning graph for MidnightDev agent stack",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint:sample": "node scripts/lint-sidecar.js examples/sample-sidecar.json",
+    "test": "node --test scripts/lint-sidecar.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

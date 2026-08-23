@@ -1,0 +1,39 @@
+{
+  "version": "1",
+  "runId": "run_demo_001",
+  "projectId": "dozen",
+  "goal": "Draft and verify one TikTok caption for creator @surfgirl92",
+  "doneMeans": "Caption passes FTC disclosure check and brand voice lint",
+  "nodes": [
+    {
+      "id": "node_a1b2c3",
+      "runId": "run_demo_001",
+      "projectId": "dozen",
+      "stepId": "step_draft",
+      "stepAttempt": 1,
+      "question": "Does the caption include a visible FTC disclosure?",
+      "critique": "Caption is missing #ad disclosure. Add '#ad' or '#sponsored' before the CTA.",
+      "confidence": 0.91,
+      "revised": true,
+      "status": "open",
+      "tier": "observed",
+      "createdAt": 1724450000000
+    },
+    {
+      "id": "node_d4e5f6",
+      "runId": "run_demo_001",
+      "projectId": "dozen",
+      "stepId": "step_draft",
+      "stepAttempt": 2,
+      "question": "Does the caption include a visible FTC disclosure?",
+      "critique": "Verifier satisfied.",
+      "confidence": 0.95,
+      "revised": false,
+      "status": "resolved",
+      "tier": "resolved",
+      "createdAt": 1724450060000,
+      "resolvedAt": 1724450060000
+    }
+  ],
+  "createdAt": 1724449900000
+}
