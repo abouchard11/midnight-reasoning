@@ -108,3 +108,26 @@ Critic returns structured JSON:
 - `references/prior-art.md`
 - `examples/sample-sidecar.json`
 - `examples/sample-run.md`
+
+## Retrospective (runs after every invocation)
+
+After the primary work finishes, produce a single observed note if and only if one of these is true:
+
+1. The same verifier failed ≥2 times in this run
+2. A node had no useful evidence and the critic confidence stayed < 0.6
+3. The skill instructions were ambiguous enough that the agent had to guess
+4. A stop condition fired (max attempts, dollar ceiling, no-progress)
+
+Format:
+
+- tier: observed
+- target: <skill name | graph id | types file>
+- proposal: one concrete change (not a vibe)
+- evidence: step ids + short quote
+
+Do not edit any SKILL.md, graph JSON, or types file.
+Do not call promote / persist / remember.
+Write the note to `.scratch/retro.<runId>.md` and stop.
+
+If a note was written, the runtime surfaces it as a Hermes InboxItem
+(kind: "decision", title: "Skill/graph improvement candidate").

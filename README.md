@@ -8,14 +8,19 @@ Two-layer architecture:
 
 No new trust-tier violations. No new durable stores. GBrain and MEMORY.md are untouched.
 
-## Stack position
+## Stack
 
 ```
-agentic-graph-orchestration   ← work topology, verifiers, closers
-midnight-agent-skills         ← gbrain-graph-companion, skill registry
-hermes-command-center         ← operator UI, Run/Step/Loop types
-midnight-reasoning            ← THIS REPO: reflection episodes, sidecar, critic pass
+agentic-graph-orchestration     ← canonical work topology + linter
+        ↑ consumed by
+midnight-agent-skills           ← packaging pair (work + memory closer)
+        ↑ consumed by
+midnight-reasoning              ← THIS REPO: reflection / critic library
+        ↑ consumed by
+hermes-command-center           ← operator UI + run state
 ```
+
+Ownership is directed. This library consumes upstream contracts and is consumed by Hermes. It does not edit upstream skills from product work.
 
 ## Install
 
@@ -85,3 +90,9 @@ midnight-reasoning/
 - `observed` tier reflection nodes never persist. Only `resolved` nodes promote.
 - Sidecar is local scratch. It is not committed to the repo during a run.
 - Critic model may propose a retry. It may not auto-close an irreversible product edge.
+
+## Related
+
+- [agentic-graph-orchestration](https://github.com/abouchard11/agentic-graph-orchestration) — work topology + linter (private)
+- [midnight-agent-skills](https://github.com/abouchard11/midnight-agent-skills) — drop-in skill pair (private)
+- [hermes-command-center](https://github.com/abouchard11/hermes-command-center) — operator UI that consumes this library (private)
