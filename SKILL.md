@@ -121,7 +121,7 @@ After the primary work finishes, produce a single observed note if and only if o
 Format:
 
 - tier: observed
-- target: <skill name | graph id | types file>
+- target: skill name, graph id, or types file
 - proposal: one concrete change (not a vibe)
 - evidence: step ids + short quote
 
