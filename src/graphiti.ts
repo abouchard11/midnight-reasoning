@@ -9,6 +9,12 @@ export type MemoryEpisode = {
 
 export type MemoryGraphiti = GraphitiPort & { episodes: MemoryEpisode[] };
 
+export type HttpGraphitiOptions = {
+  baseUrl: string;
+  apiKey?: string;
+  fetch?: typeof fetch;
+};
+
 function tokenScore(query: string, hay: string): number {
   const q = query.toLowerCase().split(/\W+/).filter((w) => w.length > 2);
   if (q.length === 0) return 0;
@@ -48,6 +54,69 @@ export function createMemoryGraphiti(): MemoryGraphiti {
         .slice(0, input.limit);
     },
   };
+}
+
+function asPrior(raw: unknown): PriorContext {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Graphiti search: expected object items');
+  }
+  const o = raw as Record<string, unknown>;
+  if (typeof o.nodeId !== 'string' || typeof o.question !== 'string') {
+    throw new Error('Graphiti search: missing nodeId/question');
+  }
+  return {
+    nodeId: o.nodeId,
+    question: o.question,
+    projectId: String(o.projectId ?? ''),
+    resolvedAt: Number(o.resolvedAt ?? 0),
+    similarity: Number(o.similarity ?? 0),
+  };
+}
+
+/**
+ * HTTP GraphitiPort against an operator-owned sidecar.
+ *
+ * Contract (your Graphiti adapter must implement these):
+ *   POST {baseUrl}/episodes   body: { groupId, content, metadata }
+ *   POST {baseUrl}/search     body: { query, projectId, limit } → PriorContext[]
+ *
+ * Non-2xx throws. This is not a live Zep/Graphiti client.
+ */
+export function createHttpGraphiti(opts: HttpGraphitiOptions): GraphitiPort {
+  const base = opts.baseUrl.trim().replace(/\/$/, '');
+  if (!base) throw new Error('GRAPHITI_URL is empty');
+  const f = opts.fetch ?? fetch;
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (opts.apiKey) headers.authorization = `Bearer ${opts.apiKey}`;
+
+  return {
+    async addEpisode(input) {
+      const res = await f(`${base}/episodes`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(`Graphiti promote failed: ${res.status}`);
+    },
+    async search(input) {
+      const res = await f(`${base}/search`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(`Graphiti search failed: ${res.status}`);
+      const data: unknown = await res.json();
+      if (!Array.isArray(data)) throw new Error('Graphiti search: expected array');
+      return data.map(asPrior);
+    },
+  };
+}
+
+/** Missing GRAPHITI_URL → undefined. Callers must not pretend a client exists. */
+export function graphitiFromEnv(env: Record<string, string | undefined> = process.env): GraphitiPort | undefined {
+  const baseUrl = env.GRAPHITI_URL?.trim();
+  if (!baseUrl) return undefined;
+  return createHttpGraphiti({ baseUrl, apiKey: env.GRAPHITI_API_KEY });
 }
 
 function promotable(node: ReflectionNode): boolean {

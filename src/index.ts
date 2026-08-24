@@ -4,8 +4,10 @@ export {
   promoteToGraphiti,
   recallPriorContext,
   createMemoryGraphiti,
+  createHttpGraphiti,
+  graphitiFromEnv,
 } from './graphiti.js';
-export type { MemoryGraphiti, MemoryEpisode } from './graphiti.js';
+export type { MemoryGraphiti, MemoryEpisode, HttpGraphitiOptions } from './graphiti.js';
 export type {
   ReflectionNode,
   ReflectionStatus,

@@ -33,9 +33,9 @@ npm install
 ## Usage
 
 ```ts
-import { ReasoningGraph, createMemoryGraphiti } from '@midnight/reasoning';
+import { ReasoningGraph, createMemoryGraphiti, graphitiFromEnv } from '@midnight/reasoning';
 
-const graphiti = createMemoryGraphiti(); // tests. Production: inject a real GraphitiPort.
+const graphiti = graphitiFromEnv() ?? createMemoryGraphiti(); // env client, else tests-only memory. promote() still throws if you pass nothing.
 
 const rg = new ReasoningGraph({
   runId: run.id,
