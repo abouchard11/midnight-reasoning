@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "lint:sample": "node scripts/lint-sidecar.js examples/sample-sidecar.json",
-    "test": "node --test scripts/lint-sidecar.test.js"
+    "test": "tsc && node --test scripts/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0"

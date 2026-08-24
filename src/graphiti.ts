@@ -1,58 +1,101 @@
-import type { ReflectionNode, PriorContext } from './types.js';
+import type { GraphitiPort, PriorContext, ReflectionNode } from './types.js';
 
-/**
- * Promote resolved reflection nodes from a sidecar into Graphiti.
- * group_id convention: reasoning:<runId>
- *
- * This function is a HUMAN/POLICY-closed action.
- * The model drafts nodes. It does not call promote() autonomously.
- *
- * Replace the stub implementations below with your actual Graphiti client.
- */
-export async function promoteToGraphiti(
-  nodes: ReflectionNode[],
-  runId: string
-): Promise<void> {
-  const resolved = nodes.filter((n) => n.status === 'resolved' && n.tier === 'resolved');
-  if (resolved.length === 0) return;
+export type MemoryEpisode = {
+  groupId: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: number;
+};
 
-  const groupId = `reasoning:${runId}`;
+export type MemoryGraphiti = GraphitiPort & { episodes: MemoryEpisode[] };
 
-  for (const node of resolved) {
-    // TODO: replace with your Graphiti client call
-    // await graphitiClient.add_memory({
-    //   content: node.critique,
-    //   metadata: {
-    //     question: node.question,
-    //     stepId: node.stepId,
-    //     projectId: node.projectId,
-    //     resolvedAt: node.resolvedAt,
-    //   },
-    //   group_id: groupId,
-    // });
-    console.log(`[graphiti] promote node ${node.id} → group_id: ${groupId}`);
-  }
+function tokenScore(query: string, hay: string): number {
+  const q = query.toLowerCase().split(/\W+/).filter((w) => w.length > 2);
+  if (q.length === 0) return 0;
+  const h = hay.toLowerCase();
+  const hits = q.filter((w) => h.includes(w)).length;
+  return hits / q.length;
 }
 
 /**
- * Recall the top N open questions from past runs on the same project.
- * Used at run start to inject prior context into the first planning step.
+ * In-process Graphiti stand-in for tests and local dry-runs.
+ * Not durable. Not production Graphiti.
+ */
+export function createMemoryGraphiti(): MemoryGraphiti {
+  const episodes: MemoryEpisode[] = [];
+  return {
+    episodes,
+    async addEpisode(input) {
+      episodes.push({
+        groupId: input.groupId,
+        content: input.content,
+        metadata: input.metadata,
+        createdAt: Date.now(),
+      });
+    },
+    async search(input) {
+      return episodes
+        .filter((e) => e.metadata.projectId === input.projectId)
+        .map((e) => ({
+          nodeId: String(e.metadata.nodeId ?? ''),
+          question: String(e.metadata.question ?? ''),
+          projectId: input.projectId,
+          resolvedAt: Number(e.metadata.resolvedAt ?? 0),
+          similarity: tokenScore(input.query, `${e.content} ${e.metadata.question ?? ''}`),
+        }))
+        .filter((p) => p.similarity > 0)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, input.limit);
+    },
+  };
+}
+
+function promotable(node: ReflectionNode): boolean {
+  return node.status === 'resolved' && node.tier === 'resolved';
+}
+
+/**
+ * Promote resolved reflection nodes into Graphiti.
+ * group_id convention: reasoning:<runId>
  *
- * Returns nodes ordered by semantic similarity to the current run's goal.
+ * HUMAN/POLICY-closed. Requires an injected GraphitiPort.
+ * Refuses to no-op-log and pretend success.
+ */
+export async function promoteToGraphiti(
+  nodes: ReflectionNode[],
+  runId: string,
+  store: GraphitiPort
+): Promise<number> {
+  const resolved = nodes.filter(promotable);
+  if (resolved.length === 0) return 0;
+
+  const groupId = `reasoning:${runId}`;
+  for (const node of resolved) {
+    await store.addEpisode({
+      groupId,
+      content: node.critique,
+      metadata: {
+        nodeId: node.id,
+        question: node.question,
+        stepId: node.stepId,
+        projectId: node.projectId,
+        resolvedAt: node.resolvedAt,
+      },
+    });
+  }
+  return resolved.length;
+}
+
+/**
+ * Recall prior resolved questions for a project.
+ * No store → honest empty list (do not invent context).
  */
 export async function recallPriorContext(
   goalText: string,
   projectId: string,
-  topN = 3
+  topN = 3,
+  store?: GraphitiPort
 ): Promise<PriorContext[]> {
-  // TODO: replace with your Graphiti semantic search
-  // const results = await graphitiClient.search({
-  //   query: goalText,
-  //   group_ids: [`reasoning:*`],  // or filter by projectId in metadata
-  //   limit: topN,
-  // });
-  // return results.map(r => ({ ...r.metadata, similarity: r.score }));
-
-  console.log(`[graphiti] recall prior context for project: ${projectId}`);
-  return [];
+  if (!store) return [];
+  return store.search({ query: goalText, projectId, limit: topN });
 }

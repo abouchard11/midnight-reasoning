@@ -55,10 +55,27 @@ export type ReflectOptions = {
   maxAttempts?: number;          // default 3
 };
 
+export type CriticFn = (opts: ReflectOptions) => Promise<CriticResult>;
+
+export type GraphitiPort = {
+  addEpisode(input: {
+    groupId: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  }): Promise<void>;
+  search(input: {
+    query: string;
+    projectId: string;
+    limit: number;
+  }): Promise<PriorContext[]>;
+};
+
 export type ReasoningGraphOptions = {
   runId: string;
   projectId: string;
   goal: string;
   doneMeans: string;
   scratchDir?: string;           // default '.scratch'
+  critic?: CriticFn;
+  graphiti?: GraphitiPort;
 };

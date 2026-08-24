@@ -8,6 +8,8 @@ import type {
   ReflectionNode,
   PriorContext,
   SidecarGraph,
+  CriticFn,
+  GraphitiPort,
 } from './types.js';
 
 export class ReasoningGraph {
@@ -16,6 +18,8 @@ export class ReasoningGraph {
   private goal: string;
   private doneMeans: string;
   private scratchDir: string;
+  private critic?: CriticFn;
+  private graphiti?: GraphitiPort;
 
   constructor(opts: ReasoningGraphOptions) {
     this.runId = opts.runId;
@@ -23,6 +27,8 @@ export class ReasoningGraph {
     this.goal = opts.goal;
     this.doneMeans = opts.doneMeans;
     this.scratchDir = opts.scratchDir ?? '.scratch';
+    this.critic = opts.critic;
+    this.graphiti = opts.graphiti;
 
     initSidecar(
       { runId: this.runId, projectId: this.projectId, goal: this.goal, doneMeans: this.doneMeans },
@@ -33,9 +39,10 @@ export class ReasoningGraph {
   /**
    * Recall up to 3 open questions from past runs on the same project.
    * Call at run start. Inject returned context into first planning step.
+   * Empty when no GraphitiPort is injected.
    */
   async recallPrior(topN = 3): Promise<PriorContext[]> {
-    return recallPriorContext(this.goal, this.projectId, topN);
+    return recallPriorContext(this.goal, this.projectId, topN, this.graphiti);
   }
 
   /**
@@ -57,11 +64,14 @@ export class ReasoningGraph {
       };
     }
 
-    const criticResult = await runCriticPass({
-      ...opts,
-      runOutcome: this.goal,
-      runDoneMeans: this.doneMeans,
-    });
+    const criticResult = await runCriticPass(
+      {
+        ...opts,
+        runOutcome: this.goal,
+        runDoneMeans: this.doneMeans,
+      },
+      this.critic
+    );
 
     const node: ReflectionNode = {
       id: randomUUID(),
@@ -91,12 +101,18 @@ export class ReasoningGraph {
   /**
    * Promote resolved nodes to Graphiti and delete the sidecar.
    * HUMAN/POLICY-closed action. Do not call autonomously.
+   * Throws if no GraphitiPort was injected — sidecar stays on disk.
    */
   async promote(): Promise<void> {
     const graph = readSidecar(this.runId, this.scratchDir);
     if (!graph) return;
+    if (!this.graphiti) {
+      throw new Error(
+        'promote() requires an injected GraphitiPort; sidecar left in place'
+      );
+    }
+    await promoteToGraphiti(graph.nodes, this.runId, this.graphiti);
     closeSidecar(this.runId, 'shipped', this.scratchDir);
-    await promoteToGraphiti(graph.nodes, this.runId);
     discardSidecar(this.runId, this.scratchDir);
   }
 

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { CriticResult, ReflectOptions } from './types.js';
+import type { CriticFn, CriticResult, ReflectOptions } from './types.js';
 
 const CRITIC_SYSTEM = `You are a verifier agent. Your job is to determine whether evidence produced by an AI agent step satisfies a given verifier criterion.
 
@@ -10,12 +10,20 @@ Return ONLY valid JSON in this exact shape:
 - critique: if pass is false, explain specifically what is wrong and what the agent should try differently. If pass is true, write "Verifier satisfied."
 - confidence: your confidence in this assessment, 0.0 to 1.0. If below 0.6, you are uncertain — the caller will treat this as a pass to avoid forced loops.`;
 
-export async function runCriticPass(
-  opts: ReflectOptions,
-  client?: Anthropic
-): Promise<CriticResult> {
-  const anthropic = client ?? new Anthropic();
+export function enforceCriticPolicy(result: CriticResult): CriticResult {
+  const confidence = Number.isFinite(result.confidence) ? result.confidence : 0;
+  if (confidence < 0.6) {
+    return {
+      pass: true,
+      confidence,
+      critique: `[Low confidence ${confidence.toFixed(2)}] ${result.critique}`,
+    };
+  }
+  return { pass: Boolean(result.pass), critique: result.critique, confidence };
+}
 
+async function anthropicCritic(opts: ReflectOptions, client?: Anthropic): Promise<CriticResult> {
+  const anthropic = client ?? new Anthropic();
   const userMessage = `Goal: ${opts.runOutcome}
 Done means: ${opts.runDoneMeans}
 Step verifier: ${opts.stepVerifier}
@@ -33,19 +41,18 @@ Does this evidence satisfy the verifier? Return JSON only.`;
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : '{}';
 
-  let result: CriticResult;
   try {
-    result = JSON.parse(raw) as CriticResult;
+    return JSON.parse(raw) as CriticResult;
   } catch {
-    // Malformed response — treat as uncertain pass
-    result = { pass: true, critique: 'Critic returned unparseable response.', confidence: 0.5 };
+    return { pass: true, critique: 'Critic returned unparseable response.', confidence: 0.5 };
   }
+}
 
-  // Enforce: confidence below 0.6 is always a pass
-  if (result.confidence < 0.6) {
-    result.pass = true;
-    result.critique = `[Low confidence ${result.confidence.toFixed(2)}] ${result.critique}`;
-  }
-
-  return result;
+export async function runCriticPass(
+  opts: ReflectOptions,
+  client?: Anthropic | CriticFn
+): Promise<CriticResult> {
+  const raw =
+    typeof client === 'function' ? await client(opts) : await anthropicCritic(opts, client);
+  return enforceCriticPolicy(raw);
 }
