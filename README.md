@@ -67,6 +67,7 @@ if (run.status === 'escaped') await rg.discard();
 ```sh
 npm test
 node scripts/lint-sidecar.js examples/sample-sidecar.json
+node examples/http-sidecar.mjs   # memory sidecar; GRAPHITI_URL=http://127.0.0.1:8787
 ```
 
 ## Directory structure
