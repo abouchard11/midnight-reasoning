@@ -27,7 +27,7 @@ Local file: `.scratch/reasoning-graph.<runId>.json`
 - Queried at the start of a new run via `matchReasoningNodes(goalEmbedding, projectId)`.
 - Top 3 open questions from past runs inject as pre-context into the first planning step.
 - TTL: 30 days. After that, episode status flips to `expired`.
-- There is no default Graphiti client. `createMemoryGraphiti()` is tests/dry-run only.
+- There is no default Graphiti client. `graphitiFromEnv()` returns a client only when `GRAPHITI_URL` is set. `createMemoryGraphiti()` and `examples/http-sidecar.mjs` are tests/dry-run only.
 
 ## Procedure
 
@@ -108,6 +108,7 @@ Critic returns structured JSON:
 
 - `references/lanes.md`
 - `references/prior-art.md`
+- `examples/http-sidecar.mjs`
 - `examples/sample-sidecar.json`
 - `examples/sample-run.md`
 
