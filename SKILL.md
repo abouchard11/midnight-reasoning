@@ -16,7 +16,7 @@ Local file: `.scratch/reasoning-graph.<runId>.json`
 - Created when a run starts.
 - A new `ReflectionNode` is appended after every `reflectStep()` call.
 - At run end:
-  - `shipped` → `promote()` sends `resolved` nodes to Graphiti as `reasoning:<runId>` episodes.
+  - `shipped` → `promote()` sends `resolved` nodes to Graphiti as `reasoning:<runId>` episodes. Requires an injected `GraphitiPort`. Throws and leaves the sidecar if none is present.
   - `escaped` / `stopped` → `discard()` deletes the file. Nothing persists.
 
 ### Layer 2 — Graphiti episodes (Option 1)
@@ -27,14 +27,15 @@ Local file: `.scratch/reasoning-graph.<runId>.json`
 - Queried at the start of a new run via `matchReasoningNodes(goalEmbedding, projectId)`.
 - Top 3 open questions from past runs inject as pre-context into the first planning step.
 - TTL: 30 days. After that, episode status flips to `expired`.
+- There is no default Graphiti client. `createMemoryGraphiti()` is tests/dry-run only.
 
 ## Procedure
 
 ### 1. On run start
 
 ```ts
-const rg = new ReasoningGraph({ runId, projectId });
-const priorContext = await rg.recallPrior(run.outcome); // top 3 Graphiti matches
+const rg = new ReasoningGraph({ runId, projectId, goal, doneMeans, graphiti });
+const priorContext = await rg.recallPrior(); // top 3; [] if no GraphitiPort
 // inject priorContext into first Step's context window
 ```
 
@@ -58,8 +59,8 @@ If `result.revised === false`:
 ### 3. On run end
 
 ```ts
-// shipped
-await rg.promote(); // resolved nodes → Graphiti
+// shipped — human/policy only
+await rg.promote(); // resolved nodes → GraphitiPort. Throws if missing.
 await rg.discard(); // delete local sidecar
 
 // escaped / stopped
@@ -92,6 +93,7 @@ Critic returns structured JSON:
 - Critic may not close accept / post / pay / publish gates.
 - Max 3 reflect attempts per step (maps to `loop.maxAttempts`).
 - If `noProgressStreak >= 2` on the same step, surface to human. Do not loop forever.
+- Do not log-and-succeed a missing Graphiti client.
 
 ## Lanes
 
