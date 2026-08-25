@@ -63,3 +63,53 @@ describe('GraphitiPort', () => {
     assert.equal(other.length, 0);
   });
 });
+
+describe('confidence floor on promotion', () => {
+  it('does not promote a low-confidence node even when marked resolved/resolved', async () => {
+    // enforceCriticPolicy returns pass:true below the floor so an unsure critic
+    // cannot force a retry loop, and pass:true sets status AND tier to 'resolved'.
+    // That node must still never reach durable memory.
+    const store = createMemoryGraphiti();
+    const n = await promoteToGraphiti(
+      [node({ id: 'unsure', confidence: 0.42, critique: '[Low confidence 0.42] Probably fine.' })],
+      'run_floor',
+      store
+    );
+    assert.equal(n, 0, 'low-confidence node must not be promoted');
+    assert.equal(store.episodes.length, 0);
+  });
+
+  it('does not promote the unparseable-critic fallback (confidence 0.5)', async () => {
+    const store = createMemoryGraphiti();
+    const n = await promoteToGraphiti(
+      [node({ id: 'garbage', confidence: 0.5, critique: 'Critic returned unparseable response.' })],
+      'run_floor',
+      store
+    );
+    assert.equal(n, 0, 'unparseable-response fallback must not be promoted');
+  });
+
+  it('promotes exactly at the floor', async () => {
+    const store = createMemoryGraphiti();
+    const n = await promoteToGraphiti([node({ id: 'edge', confidence: 0.6 })], 'run_floor', store);
+    assert.equal(n, 1, 'confidence === floor is promotable');
+  });
+
+  it('rejects a non-finite confidence', async () => {
+    const store = createMemoryGraphiti();
+    const n = await promoteToGraphiti(
+      [node({ id: 'nan', confidence: Number.NaN }), node({ id: 'undef', confidence: undefined })],
+      'run_floor',
+      store
+    );
+    assert.equal(n, 0, 'NaN/undefined confidence must not be promoted');
+  });
+
+  it('an uncertain node cannot be recalled as prior context', async () => {
+    // The whole point: promoted nodes are re-injected into future runs.
+    const store = createMemoryGraphiti();
+    await promoteToGraphiti([node({ id: 'unsure', confidence: 0.42 })], 'run_floor', store);
+    const prior = await recallPriorContext('FTC disclosure', 'dozen', 3, store);
+    assert.equal(prior.length, 0, 'uncertain verdict must not become prior context');
+  });
+});

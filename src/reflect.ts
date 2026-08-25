@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { CriticFn, CriticResult, ReflectOptions } from './types.js';
+import { CONFIDENCE_FLOOR } from './policy.js';
 
 const CRITIC_SYSTEM = `You are a verifier agent. Your job is to determine whether evidence produced by an AI agent step satisfies a given verifier criterion.
 
@@ -12,7 +13,7 @@ Return ONLY valid JSON in this exact shape:
 
 export function enforceCriticPolicy(result: CriticResult): CriticResult {
   const confidence = Number.isFinite(result.confidence) ? result.confidence : 0;
-  if (confidence < 0.6) {
+  if (confidence < CONFIDENCE_FLOOR) {
     return {
       pass: true,
       confidence,
