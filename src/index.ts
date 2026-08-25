@@ -1,5 +1,6 @@
 export { ReasoningGraph } from './reasoning-graph.js';
 export { runCriticPass, enforceCriticPolicy } from './reflect.js';
+export { CONFIDENCE_FLOOR } from './policy.js';
 export {
   promoteToGraphiti,
   recallPriorContext,

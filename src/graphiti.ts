@@ -1,4 +1,5 @@
 import type { GraphitiPort, PriorContext, ReflectionNode } from './types.js';
+import { CONFIDENCE_FLOOR } from './policy.js';
 
 export type MemoryEpisode = {
   groupId: string;
@@ -119,8 +120,23 @@ export function graphitiFromEnv(env: Record<string, string | undefined> = proces
   return createHttpGraphiti({ baseUrl, apiKey: env.GRAPHITI_API_KEY });
 }
 
+/**
+ * A node may become durable memory only if the critic was resolved AND confident.
+ *
+ * The confidence check is not redundant with the status/tier check.
+ * `enforceCriticPolicy` deliberately returns `pass: true` below CONFIDENCE_FLOOR
+ * so an unsure critic cannot force a retry loop — and `pass: true` sets both
+ * `status` and `tier` to 'resolved'. Without this clause an uncertain verdict
+ * reaches Graphiti, where `recallPriorContext` serves it back to a later run as
+ * settled prior context.
+ *
+ * Let the step pass. Do not let it become memory.
+ */
 function promotable(node: ReflectionNode): boolean {
-  return node.status === 'resolved' && node.tier === 'resolved';
+  return node.status === 'resolved'
+    && node.tier === 'resolved'
+    && Number.isFinite(node.confidence)
+    && node.confidence >= CONFIDENCE_FLOOR;
 }
 
 /**
