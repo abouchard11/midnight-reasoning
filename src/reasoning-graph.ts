@@ -102,18 +102,20 @@ export class ReasoningGraph {
    * Promote resolved nodes to Graphiti and delete the sidecar.
    * HUMAN/POLICY-closed action. Do not call autonomously.
    * Throws if no GraphitiPort was injected — sidecar stays on disk.
+   * Returns the number of nodes that cleared the gate and were promoted.
    */
-  async promote(): Promise<void> {
+  async promote(): Promise<number> {
     const graph = readSidecar(this.runId, this.scratchDir);
-    if (!graph) return;
+    if (!graph) return 0;
     if (!this.graphiti) {
       throw new Error(
         'promote() requires an injected GraphitiPort; sidecar left in place'
       );
     }
-    await promoteToGraphiti(graph.nodes, this.runId, this.graphiti);
+    const n = await promoteToGraphiti(graph.nodes, this.runId, this.graphiti);
     closeSidecar(this.runId, 'shipped', this.scratchDir);
     discardSidecar(this.runId, this.scratchDir);
+    return n;
   }
 
   /**
