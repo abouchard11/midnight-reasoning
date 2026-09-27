@@ -15,7 +15,12 @@ How `midnight-reasoning` fits into the existing Graphiti / GBrain / MEMORY.md tr
 
 ## Conflict resolution order
 
-Live sidecar > Graphiti `reasoning:*` > GBrain page > MEMORY.md cache
+Live sidecar > Graphiti reasoning lane > GBrain page > MEMORY.md cache
+
+The library names the durable lane `reasoning:<runId>`. The production v1
+adapter currently stores those episodes under `reasoning-index` and preserves
+the library group as `origGroup` metadata. Treat that remap as a known temporary
+implementation constraint, not a new public group convention.
 
 ## What this does NOT own
 
@@ -26,4 +31,8 @@ Live sidecar > Graphiti `reasoning:*` > GBrain page > MEMORY.md cache
 
 ## TTL
 
-Graphiti `reasoning:*` episodes expire after 30 days (flip `status` to `expired` via a cron or Graphiti TTL config). Sidecar files in `.scratch/` are process-local and should never be committed.
+The intended policy is for Graphiti reasoning episodes to expire after 30 days
+by flipping `status` to `expired` through a cron or Graphiti TTL configuration.
+That mechanism is **not implemented yet**. Until it is implemented and tested,
+do not claim that durable reasoning expires automatically. Sidecar files in
+`.scratch/` are process-local and should never be committed.
