@@ -21,8 +21,17 @@ recall at similarity 1.0.
 3. **Recall is lexical over a 60-episode window** (`retrieve_episodes` + token overlap), not
    Graphiti hybrid search. Older resolved questions silently exit the window. Real recall
    needs the hybrid path (embeddings + BM25 + graph) with the metadata round-trip preserved.
-4. TTL (30-day) specified in `references/lanes.md`, implemented nowhere.
-5. No run has yet **consumed** recalled prior context in a live task; the 1.0 recall was a
+4. **Partial-promotion recovery and idempotency.** `promoteToGraphiti()` writes nodes one at a
+   time. If a later write fails, earlier nodes may already be durable while the sidecar remains
+   for retry. The adapter uses stable `mr:<nodeId>` episode names, but duplicate prevention or
+   upsert behavior has not been proven. Add a fault-injection test that fails after node N,
+   retries the same sidecar, and verifies exactly one durable episode per `nodeId`.
+5. **TTL is policy, not behavior.** The 30-day TTL specified in `references/lanes.md` is
+   implemented nowhere.
+6. **No-progress accounting belongs to the caller but has no integration proof.** The library
+   enforces `maxAttempts`; it does not compute `noProgressStreak`. Hermes or another caller must
+   prove that two non-progressing attempts surface to a human.
+7. No run has yet **consumed** recalled prior context in a live task; the 1.0 recall was a
    verification query. First consuming run is the remaining integration proof.
 
 IP note: the sealed-edge claim covers the gate mechanism (proven). Any claim reciting

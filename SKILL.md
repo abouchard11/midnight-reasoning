@@ -14,20 +14,22 @@ Adds a PRefLexOR-style critic pass and cross-run knowledge graph to any agent ru
 Local file: `.scratch/reasoning-graph.<runId>.json`
 
 - Created when a run starts.
-- A new `ReflectionNode` is appended after every `reflectStep()` call.
+- A new `ReflectionNode` is appended after every `reflect()` call. Append-only
+  describes the node history; the current implementation rewrites the JSON file.
 - At run end:
-  - `shipped` → `promote()` sends `resolved` nodes to Graphiti as `reasoning:<runId>` episodes. Requires an injected `GraphitiPort`. Throws and leaves the sidecar if none is present.
+  - `shipped` → human/policy-owned `promote()` sends confident, `resolved` nodes through the injected `GraphitiPort`, then deletes the sidecar. It throws and leaves the sidecar if no port is present.
   - `escaped` / `stopped` → `discard()` deletes the file. Nothing persists.
 
 ### Layer 2 — Graphiti episodes (Option 1)
 
-`group_id: reasoning:<runId>`
+Library contract: `group_id: reasoning:<runId>`
 
-- Each episode is a `ReflectionNode` with `status: resolved`.
-- Queried at the start of a new run via `matchReasoningNodes(goalEmbedding, projectId)`.
-- Top 3 open questions from past runs inject as pre-context into the first planning step.
-- TTL: 30 days. After that, episode status flips to `expired`.
-- There is no default Graphiti client. `graphitiFromEnv()` returns a client only when `GRAPHITI_URL` is set. `createMemoryGraphiti()` and `examples/http-sidecar.mjs` are tests/dry-run only.
+- Each durable episode comes from a node with `status: resolved`, `tier: resolved`, and confidence at or above the shared floor.
+- Queried at the start of a new run through `recallPrior()` and the injected port's `search()` implementation.
+- Up to 3 relevant resolved questions from past runs may be injected as pre-context into the first planning step.
+- The current production v1 adapter remaps per-run groups into `reasoning-index`, preserves the original group in metadata, and performs lexical ranking over the latest 60 episodes. Hybrid semantic search is not implemented yet.
+- A 30-day TTL is specified but not implemented. Do not claim that episodes expire until a cron or Graphiti TTL policy exists and is verified.
+- There is no default port. `graphitiFromEnv()` returns one only when `GRAPHITI_URL` is set. `createMemoryGraphiti()` and `examples/http-sidecar.mjs` are tests/dry-run only; production must not silently fall back to memory.
 
 ## Procedure
 
@@ -60,8 +62,7 @@ If `result.revised === false`:
 
 ```ts
 // shipped — human/policy only
-await rg.promote(); // resolved nodes → GraphitiPort. Throws if missing.
-await rg.discard(); // delete local sidecar
+await rg.promote(); // confident resolved nodes → GraphitiPort; deletes sidecar on success
 
 // escaped / stopped
 await rg.discard(); // delete only, nothing persists
@@ -84,15 +85,17 @@ Critic returns structured JSON:
 { "pass": false, "critique": "The evidence does not address X because Y. Try Z.", "confidence": 0.82 }
 ```
 
-`confidence < 0.6` → treat as `pass: true` (critic is unsure, do not force retry).
+`confidence < 0.6` → treat as `pass: true` for the current step (critic is
+unsure, so do not force a retry). The node still fails the separate promotion
+confidence gate and cannot become durable memory.
 
 ## Hard rules
 
 - Model drafts reflection nodes. Model does not own `promote()` or `persist()`.
-- Never promote an `observed` node. Only `resolved`.
+- Never promote an `observed` node. A node must be resolved and meet the confidence floor.
 - Critic may not close accept / post / pay / publish gates.
 - Max 3 reflect attempts per step (maps to `loop.maxAttempts`).
-- If `noProgressStreak >= 2` on the same step, surface to human. Do not loop forever.
+- The caller owns `noProgressStreak` accounting; the library does not currently compute it. If it reaches 2 on the same step, surface to a human.
 - Do not log-and-succeed a missing Graphiti client.
 
 ## Lanes
@@ -100,7 +103,7 @@ Critic returns structured JSON:
 | Store | What goes here | Never |
 |---|---|---|
 | Sidecar JSON | In-flight reflection nodes, all tiers | Durable facts, product state |
-| Graphiti `reasoning:*` | Resolved questions, cross-run context | GBrain pages, MEMORY.md entries |
+| Graphiti reasoning lane | Confident resolved questions, cross-run context. Library emits `reasoning:<runId>`; production v1 remaps to `reasoning-index`. | GBrain pages, MEMORY.md entries, uncertain nodes |
 | GBrain | Learning pages from closed run retros | Raw reflection nodes |
 | MEMORY.md | Pointer to current run's top open question | Anything authoritative |
 
@@ -108,6 +111,7 @@ Critic returns structured JSON:
 
 - `references/lanes.md`
 - `references/prior-art.md`
+- `KNOWN-GAPS.md`
 - `examples/http-sidecar.mjs`
 - `examples/sample-sidecar.json`
 - `examples/sample-run.md`
