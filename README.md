@@ -19,7 +19,7 @@ midnight-agent-skills           ← packaging pair (work + memory closer)
         ↑ consumed by
 midnight-reasoning              ← THIS REPO: reflection / critic library
         ↑ consumed by
-hermes-command-center           ← operator UI + run state
+Kiel (runkiel.com)              ← operator UI + run state
 ```
 
 Ownership is directed. This library consumes upstream contracts and is consumed by Hermes. It does not edit upstream skills from product work.
@@ -135,6 +135,6 @@ contradiction reconciliation and partial-promotion recovery.
 
 ## Related
 
-- [agentic-graph-orchestration](https://github.com/abouchard11/agentic-graph-orchestration) — work topology + linter (private)
-- [midnight-agent-skills](https://github.com/abouchard11/midnight-agent-skills) — drop-in skill pair (private)
-- [hermes-command-center](https://github.com/abouchard11/hermes-command-center) — operator UI that consumes this library (private)
+- [agentic-graph-orchestration](https://github.com/abouchard11/agentic-graph-orchestration) — work topology + linter
+- [midnight-agent-skills](https://github.com/abouchard11/midnight-agent-skills) — drop-in skill pair
+- Kiel — operator UI that consumes this library, live at runkiel.com (source private)
