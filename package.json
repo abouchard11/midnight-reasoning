@@ -2,6 +2,7 @@
   "name": "@midnight/reasoning",
   "version": "0.1.0",
   "description": "Cross-run reasoning graph for MidnightDev agent stack",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

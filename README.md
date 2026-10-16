@@ -133,6 +133,10 @@ The current v1 production adapter:
 See [`KNOWN-GAPS.md`](./KNOWN-GAPS.md) for the full proof boundary, including
 contradiction reconciliation and partial-promotion recovery.
 
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE). Copyright 2026 Alex Bouchard.
+
 ## Related
 
 - [agentic-graph-orchestration](https://github.com/abouchard11/agentic-graph-orchestration) — work topology + linter
