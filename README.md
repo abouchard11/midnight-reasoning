@@ -1,5 +1,7 @@
 # midnight-reasoning
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23502959.svg)](https://doi.org/10.5281/zenodo.23502959)
+
 Cross-run reasoning graph for the MidnightDev agent stack.
 
 Two-layer architecture:
