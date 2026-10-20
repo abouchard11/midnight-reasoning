@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "midnight-reasoning"
+abstract: >-
+  Cross-run reasoning graph for the MidnightDev agent stack: resolved reflection nodes
+  persisted as Graphiti episodes that later runs can recall, plus an append-only
+  in-flight sidecar for the current run, with Graphiti as an injected port rather than
+  an embedded client.
+authors:
+  - family-names: "Bouchard"
+    given-names: "Alex"
+    email: "alex@midnightdev.dev"
+    affiliation: "MidnightDev"
+    website: "https://midnightdev.dev"
+    orcid: "https://orcid.org/0009-0003-0911-9681"
+type: software
+repository-code: "https://github.com/abouchard11/midnight-reasoning"
+url: "https://github.com/abouchard11/midnight-reasoning"
+license: Apache-2.0
+version: "0.1.0"
+date-released: 2026-08-23
+keywords:
+  - "agent-memory"
+  - "ai-agents"
+  - "graphiti"
+  - "knowledge-graph"
+  - "reasoning"
