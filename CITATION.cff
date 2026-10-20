@@ -18,6 +18,11 @@ repository-code: "https://github.com/abouchard11/midnight-reasoning"
 url: "https://github.com/abouchard11/midnight-reasoning"
 license: Apache-2.0
 version: "0.1.0"
+doi: "10.5281/zenodo.23502959"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23502959"
+    description: "Concept DOI: resolves to the latest archived release on Zenodo"
 date-released: 2026-08-23
 keywords:
   - "agent-memory"
